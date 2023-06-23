@@ -18,6 +18,12 @@ def _get_client(gateway_uri: str) -> mlflow.gateway.MlflowGatewayClient:
     return mlflow.gateway.MlflowGatewayClient(gateway_uri)
 
 
+def chunks(lst, n):
+  """Yield successive n-sized chunks from lst."""
+  for i in range(0, len(lst), n):
+      yield lst[i:i + n]
+
+
 class MlflowGatewayEmbeddings(Embeddings, BaseModel):
     gateway_uri: str
     route: str
@@ -35,8 +41,18 @@ class MlflowGatewayEmbeddings(Embeddings, BaseModel):
         )
         return resp["embeddings"]
 
+    def chunks(lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        return self._query(texts)
+      text_chunks = chunks(texts, 1000)
+      results = []
+      for chunk in text_chunks:
+        result = self._query(chunk)
+        results.append(result)
+      return results
 
     def embed_query(self, text: str) -> List[float]:
         return self._query([text])[0]
